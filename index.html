@@ -24,6 +24,21 @@
       margin-bottom: 4px;
     }
     .subtitle { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+    .field-hint {
+      font-size: 12px;
+      color: #64748b;
+      margin: -16px 0 24px 0;
+      line-height: 1.5;
+    }
+    .field-hint code {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #cbd5e1;
+      font-family: 'Fira Code', 'Menlo', monospace;
+      font-size: 11px;
+    }
 
     /* ── Input Row ── */
     .input-row {
@@ -300,6 +315,7 @@
     </div>
     <button class="btn btn-primary" id="fetchBtn" onclick="fetchOrder()">Fetch Order</button>
   </div>
+  <p class="field-hint">Use the TM customer ID who owns this order. Defaults to <code>5620</code> (test customer) which works for most staging orders.</p>
 
   <!-- Order details card -->
   <div id="orderCard">
