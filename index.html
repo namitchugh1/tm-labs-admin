@@ -225,16 +225,65 @@
 
     .hidden { display: none !important; }
 
-    /* ── Empty / Error states ── */
-    .empty-state {
-      padding: 40px 20px;
-      text-align: center;
-      color: #475569;
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 10px;
       font-size: 13px;
+      font-weight: 500;
+      max-width: 520px;
+      width: max-content;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 999;
     }
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.toast-error {
+      background: #1e1215;
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+    }
+    #toast.toast-warn {
+      background: #1c1408;
+      border: 1px solid #78350f;
+      color: #fcd34d;
+    }
+    #toast .toast-icon { font-size: 15px; flex-shrink: 0; }
+    #toast .toast-msg { flex: 1; }
+    #toast .toast-close {
+      background: none;
+      border: none;
+      color: inherit;
+      opacity: 0.5;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 0 0 6px;
+      line-height: 1;
+    }
+    #toast .toast-close:hover { opacity: 1; }
   </style>
 </head>
 <body>
+<!-- Generic toast -->
+<div id="toast">
+  <span class="toast-icon"></span>
+  <span class="toast-msg"></span>
+  <button class="toast-close" onclick="hideToast()">✕</button>
+</div>
+
 <div class="container">
   <h1>Diagnostics Webhook Tester</h1>
   <p class="subtitle">Staging · Replicate Healthians webhook events to test track order status transitions</p>
@@ -294,6 +343,21 @@
 <script>
   let orderData = null;
   let selectedEvent = null;
+  let toastTimer = null;
+
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast');
+    el.querySelector('.toast-icon').textContent = type === 'warn' ? '⚠️' : '✕';
+    el.querySelector('.toast-msg').textContent = msg;
+    el.className = `show toast-${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+
+  function hideToast() {
+    const el = document.getElementById('toast');
+    el.classList.remove('show');
+  }
 
   // ── Event definitions ──────────────────────────────────────────────────────
 
@@ -496,7 +560,7 @@
   async function fetchOrder() {
     const orderId = document.getElementById('orderIdInput').value.trim();
     const customerId = document.getElementById('customerIdInput').value.trim() || '5620';
-    if (!orderId) { alert('Enter an order ID'); return; }
+    if (!orderId) { showToast('Enter an Order ID to continue', 'warn'); return; }
 
     const btn = document.getElementById('fetchBtn');
     btn.disabled = true;
@@ -513,7 +577,7 @@
       renderEventList();
       document.getElementById('mainLayout').style.display = 'grid';
     } catch (err) {
-      alert('Failed to fetch order: ' + err.message);
+      showToast('Could not load order. Check the ID and try again.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Fetch Order';
@@ -600,7 +664,7 @@
     try {
       payload = JSON.parse(document.getElementById('payloadEditor').value);
     } catch {
-      alert('Invalid JSON in payload editor');
+      showToast('Payload is not valid JSON. Fix it before firing.', 'warn');
       return;
     }
 
