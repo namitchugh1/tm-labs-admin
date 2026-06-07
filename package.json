@@ -1,0 +1,16 @@
+{
+  "name": "tm-labs-status-updater",
+  "version": "1.0.0",
+  "description": "Staging webhook status updater for Truemeds Diagnostics",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
