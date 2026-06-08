@@ -414,6 +414,93 @@
             },
           }),
         },
+        {
+          id: 'bs0026', name: 'Call Not Picked', code: 'BS0026', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0026', {
+            payment_status: false, paid_amount: 0,
+            payment_link: 'http://w1.healthians.co.in/makepayment/sample',
+            remark: 'Customer is unavailable or denied for collection',
+            onHoldDetails: {
+              onhold_reason: 'Customer is unavailable or denied for collection',
+              onhold_sub_reason: 'Customer not available',
+              onholdLocation: {
+                onhold_lat: String(o.address?.latitude ?? '28.5112516'),
+                onhold_long: String(o.address?.longitude ?? '77.090839'),
+                timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+              },
+            },
+          }),
+        },
+        {
+          id: 'bs008', name: 'Sample at Lab', code: 'BS008', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS008', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs009', name: 'Report Generated', code: 'BS009', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS009', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0012', name: 'Health Counselling', code: 'BS0012', dot: 'dot-green',
+          buildPayload: (o) => statusUpdated(o, 'BS0012', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0015', name: 'Report Available', code: 'BS0015', dot: 'dot-green',
+          buildPayload: (o) => statusUpdated(o, 'BS0015', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0013', name: 'Rescheduled', code: 'BS0013', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS0013', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+            ref_booking_id: '0',
+            ref_booking_status: 'BS002',
+            ref_booking_sample_collection_date: slotDate(o),
+            ref_booking_start_time: slotStart(o),
+            ref_booking_end_time: slotEnd(o),
+          }),
+        },
+        {
+          id: 'bs0018', name: 'Resampling Init', code: 'BS0018', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0018', {
+            payment_status: true, paid_amount: '300',
+            remark: 'Sample rejected at lab. Fresh collection arranged.',
+            ref_booking_id: '0',
+            ref_booking_status: '',
+          }),
+        },
+        {
+          id: 'bs0023', name: 'Sample Rejected', code: 'BS0023', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0023', {
+            payment_status: true, paid_amount: '300',
+            remark: 'Turbid sample. Processing not possible.',
+            ref_booking_id: '0',
+            ref_booking_status: 'BS0018',
+          }),
+        },
+        {
+          id: 'bs0027', name: 'Payment On Hold', code: 'BS0027', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0027', {
+            payment_status: false, paid_amount: 0,
+            payment_link: 'http://w1.healthians.co.in/makepayment/sample',
+            remark: 'Customer will pay online',
+            collectionLocationDetails: {
+              sample_collection_lat: String(o.address?.latitude ?? '28.5112618'),
+              sample_collection_long: String(o.address?.longitude ?? '77.090851'),
+            },
+          }),
+        },
       ],
     },
     {
