@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/order/:orderId", "destination": "/api/order/[orderId]" }
+    { "source": "/api/order/:orderId", "destination": "/api/order/[orderId]" },
+    { "source": "/api/webhook", "destination": "/api/webhook" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
