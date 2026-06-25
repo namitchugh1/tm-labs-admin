@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagnostics Webhook Tester — Staging</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .subtitle { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+    .field-hint {
+      font-size: 12px;
+      color: #64748b;
+      margin: -16px 0 24px 0;
+      line-height: 1.5;
+    }
+    .field-hint code {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #cbd5e1;
+      font-family: 'Fira Code', 'Menlo', monospace;
+      font-size: 11px;
+    }
+
+    /* ── Input Row ── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      align-items: flex-end;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; color: #94a3b8; font-weight: 500; }
+    .field input {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: #4f46e5; }
+    .field input::placeholder { color: #475569; }
+    #orderIdInput { width: 360px; }
+    #customerIdInput { width: 130px; }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #4338ca; }
+    .btn-fire { background: #059669; color: #fff; font-size: 15px; padding: 12px 28px; }
+    .btn-fire:hover:not(:disabled) { background: #047857; }
+
+    /* ── Order Card ── */
+    #orderCard {
+      display: none;
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .order-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .order-field label { font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .order-field .val { font-size: 13px; color: #e2e8f0; margin-top: 3px; word-break: break-all; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-blue { background: #1e3a5f; color: #60a5fa; }
+    .badge-green { background: #14532d; color: #4ade80; }
+    .badge-red { background: #450a0a; color: #f87171; }
+    .badge-yellow { background: #451a03; color: #fb923c; }
+
+    /* ── Layout ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ── Event Selector ── */
+    .panel {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      background: #161a26;
+      border-bottom: 1px solid #2d3748;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .event-group { padding: 10px 0; border-bottom: 1px solid #1a1f2e; }
+    .event-group:last-child { border-bottom: none; }
+    .event-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 18px 6px;
+    }
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border-left: 3px solid transparent;
+    }
+    .event-item:hover { background: #252b3b; }
+    .event-item.active {
+      background: #1e2d4a;
+      border-left-color: #4f46e5;
+    }
+    .event-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-blue { background: #3b82f6; }
+    .dot-green { background: #22c55e; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-red { background: #ef4444; }
+    .dot-purple { background: #a855f7; }
+    .event-name { font-size: 13px; color: #cbd5e1; }
+    .event-code { font-size: 11px; color: #475569; margin-left: auto; }
+
+    /* ── Right Panel ── */
+    .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    .payload-area { position: relative; }
+    .payload-area .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .payload-hint { font-size: 11px; color: #475569; font-weight: 400; text-transform: none; letter-spacing: 0; }
+    textarea#payloadEditor {
+      width: 100%;
+      height: 340px;
+      background: #161a26;
+      color: #a5f3fc;
+      border: none;
+      border-radius: 0 0 12px 12px;
+      font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      padding: 16px 18px;
+      resize: vertical;
+      outline: none;
+    }
+
+    /* ── Fire + Response ── */
+    .fire-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    #statusPill {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .response-panel { display: none; }
+    #responseBody {
+      background: #161a26;
+      color: #86efac;
+      border: none;
+      border-radius: 0 0 12px 12px;
+      font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      padding: 16px 18px;
+      width: 100%;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .response-error { color: #fca5a5 !important; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #4f46e5;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 520px;
+      width: max-content;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 999;
+    }
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.toast-error {
+      background: #1e1215;
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+    }
+    #toast.toast-warn {
+      background: #1c1408;
+      border: 1px solid #78350f;
+      color: #fcd34d;
+    }
+    #toast .toast-icon { font-size: 15px; flex-shrink: 0; }
+    #toast .toast-msg { flex: 1; }
+    #toast .toast-close {
+      background: none;
+      border: none;
+      color: inherit;
+      opacity: 0.5;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 0 0 6px;
+      line-height: 1;
+    }
+    #toast .toast-close:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+<!-- Generic toast -->
+<div id="toast">
+  <span class="toast-icon"></span>
+  <span class="toast-msg"></span>
+  <button class="toast-close" onclick="hideToast()">✕</button>
+</div>
+
+<div class="container">
+  <h1>Diagnostics Webhook Tester</h1>
+  <p class="subtitle">Staging · Replicate Healthians webhook events to test track order status transitions</p>
+
+  <!-- Order lookup -->
+  <div class="input-row">
+    <div class="field">
+      <label for="orderIdInput">TM Order ID</label>
+      <input id="orderIdInput" type="text" placeholder="1ad9a74c-75e3-40ce-…" spellcheck="false" />
+    </div>
+    <div class="field">
+      <label for="customerIdInput">x-customer-id</label>
+      <input id="customerIdInput" type="text" value="5620" spellcheck="false" />
+    </div>
+    <button class="btn btn-primary" id="fetchBtn" onclick="fetchOrder()">Fetch Order</button>
+  </div>
+
+  <!-- Order details card -->
+  <div id="orderCard">
+    <div class="order-grid" id="orderGrid"></div>
+  </div>
+
+  <!-- Main layout: event list + payload editor -->
+  <div class="main-layout" id="mainLayout" style="display:none">
+
+    <!-- Left: event selector -->
+    <div class="panel">
+      <div class="panel-header">Select Webhook Event</div>
+      <div id="eventList"></div>
+    </div>
+
+    <!-- Right: payload + fire -->
+    <div class="right-panel">
+      <div class="panel payload-area">
+        <div class="panel-header">
+          <span>Payload</span>
+          <span class="payload-hint">Edit before firing if needed</span>
+        </div>
+        <textarea id="payloadEditor" spellcheck="false"></textarea>
+      </div>
+
+      <div class="fire-row">
+        <button class="btn btn-fire" id="fireBtn" onclick="fireWebhook()" disabled>
+          Fire Webhook
+        </button>
+        <span id="statusPill"></span>
+      </div>
+
+      <div class="panel response-panel" id="responsePanel">
+        <div class="panel-header" id="responseHeader">Response</div>
+        <pre id="responseBody"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let orderData = null;
+  let selectedEvent = null;
+  let toastTimer = null;
+
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast');
+    el.querySelector('.toast-icon').textContent = type === 'warn' ? '⚠️' : '✕';
+    el.querySelector('.toast-msg').textContent = msg;
+    el.className = `show toast-${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+
+  function hideToast() {
+    const el = document.getElementById('toast');
+    el.classList.remove('show');
+  }
+
+  // ── Event definitions ──────────────────────────────────────────────────────
+
+  const EVENT_GROUPS = [
+    {
+      label: 'Status Updates',
+      events: [
+        {
+          id: 'bs002', name: 'Booking Created', code: 'BS002', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS002', { remark: '' }),
+        },
+        {
+          id: 'bs003', name: 'Cancelled', code: 'BS003', dot: 'dot-red',
+          buildPayload: (o) => statusUpdated(o, 'BS003', {
+            payment_status: true, paid_amount: '0',
+            remark: '(Order Cancelled): CUSTOMER_CANCELLED',
+          }),
+        },
+        {
+          id: 'bs005', name: 'Pickup Scheduled', code: 'BS005', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS005', {
+            payment_status: true, paid_amount: '10',
+            ref_booking_status: '',
+          }),
+        },
+        {
+          id: 'bs006', name: 'Collector Reached', code: 'BS006', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS006', {
+            payment_status: false, paid_amount: 0, remark: '',
+          }),
+        },
+        {
+          id: 'bs007', name: 'Sample Collected', code: 'BS007', dot: 'dot-green',
+          buildPayload: (o) => statusUpdated(o, 'BS007', {
+            payment_status: true, paid_amount: '300',
+            collectionLocationDetails: {
+              sample_collection_lat: String(o.address?.latitude ?? '28.5112618'),
+              sample_collection_long: String(o.address?.longitude ?? '77.090851'),
+            },
+          }),
+        },
+        {
+          id: 'bs0026', name: 'Call Not Picked', code: 'BS0026', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0026', {
+            payment_status: false, paid_amount: 0,
+            payment_link: 'http://w1.healthians.co.in/makepayment/sample',
+            remark: 'Customer is unavailable or denied for collection',
+            onHoldDetails: {
+              onhold_reason: 'Customer is unavailable or denied for collection',
+              onhold_sub_reason: 'Customer not available',
+              onholdLocation: {
+                onhold_lat: String(o.address?.latitude ?? '28.5112516'),
+                onhold_long: String(o.address?.longitude ?? '77.090839'),
+                timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+              },
+            },
+          }),
+        },
+        {
+          id: 'bs008', name: 'Sample at Lab', code: 'BS008', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS008', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs009', name: 'Report Generated', code: 'BS009', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS009', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0012', name: 'Health Counselling', code: 'BS0012', dot: 'dot-green',
+          buildPayload: (o) => statusUpdated(o, 'BS0012', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0015', name: 'Report Available', code: 'BS0015', dot: 'dot-green',
+          buildPayload: (o) => statusUpdated(o, 'BS0015', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+          }),
+        },
+        {
+          id: 'bs0013', name: 'Rescheduled', code: 'BS0013', dot: 'dot-blue',
+          buildPayload: (o) => statusUpdated(o, 'BS0013', {
+            payment_status: true, paid_amount: '300',
+            remark: '',
+            ref_booking_id: '0',
+            ref_booking_status: 'BS002',
+            ref_booking_sample_collection_date: slotDate(o),
+            ref_booking_start_time: slotStart(o),
+            ref_booking_end_time: slotEnd(o),
+          }),
+        },
+        {
+          id: 'bs0018', name: 'Resampling Init', code: 'BS0018', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0018', {
+            payment_status: true, paid_amount: '300',
+            remark: 'Sample rejected at lab. Fresh collection arranged.',
+            ref_booking_id: '0',
+            ref_booking_status: '',
+          }),
+        },
+        {
+          id: 'bs0023', name: 'Sample Rejected', code: 'BS0023', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0023', {
+            payment_status: true, paid_amount: '300',
+            remark: 'Turbid sample. Processing not possible.',
+            ref_booking_id: '0',
+            ref_booking_status: 'BS0018',
+          }),
+        },
+        {
+          id: 'bs0027', name: 'Payment On Hold', code: 'BS0027', dot: 'dot-yellow',
+          buildPayload: (o) => statusUpdated(o, 'BS0027', {
+            payment_status: false, paid_amount: 0,
+            payment_link: 'http://w1.healthians.co.in/makepayment/sample',
+            remark: 'Customer will pay online',
+            collectionLocationDetails: {
+              sample_collection_lat: String(o.address?.latitude ?? '28.5112618'),
+              sample_collection_long: String(o.address?.longitude ?? '77.090851'),
+            },
+          }),
+        },
+      ],
+    },
+    {
+      label: 'Phlebo Events',
+      events: [
+        {
+          id: 'phlebo_assigned', name: 'Phlebo Assigned', code: 'phlebo_assigned', dot: 'dot-purple',
+          buildPayload: (o) => phleboEvent('phlebo_assigned', o, {
+            phlebo_name: 'Test Phlebo Local',
+            start_time: slotStart(o),
+            end_time: slotEnd(o),
+            sample_collection_date: slotDate(o),
+            message: 'Phlebotomist Arriving',
+            url: 'https://www.healthians.com/phlebo-route',
+            masked_number: '08047180026',
+          }),
+        },
+        {
+          id: 'phlebo_enroute', name: 'Phlebo En Route', code: 'phlebo_enroute', dot: 'dot-purple',
+          buildPayload: (o) => phleboEvent('phlebo_enroute', o, {
+            phlebo_name: 'Test Phlebo Local',
+            masked_number: '08047185106',
+            tracking_link: 'https://shortio.healthians.co.in/TEST123',
+          }),
+        },
+        {
+          id: 'phlebo_reassigned', name: 'Phlebo Reassigned', code: 'phlebo_reassigned', dot: 'dot-purple',
+          buildPayload: (o) => phleboEvent('phlebo_reassigned', o, {
+            phlebo_name: 'Another Phlebo Local',
+            start_time: slotStart(o),
+            end_time: slotEnd(o),
+            sample_collection_date: slotDate(o),
+            message: 'Phlebotomist Arriving',
+            url: 'https://www.healthians.com/phlebo-route',
+            masked_number: '08047180099',
+          }),
+        },
+        {
+          id: 'phlebo_delay', name: 'Phlebo Delay', code: 'phlebo_delay_notification', dot: 'dot-yellow',
+          buildPayload: (o) => phleboEvent('phlebo_delay_notification', o, {
+            phlebo_name: 'Test Phlebo Local',
+            masked_number: '08047185106',
+            etaInMinutes: 54,
+          }),
+        },
+        {
+          id: 'phlebo_call', name: 'Call Details', code: 'phlebo_customer_call_details', dot: 'dot-yellow',
+          buildPayload: (o) => phleboEvent('phlebo_customer_call_details', o, {
+            phlebo_name: 'Test Phlebo Local',
+            customer_name: o.address?.receiver_name ?? 'Test Customer',
+            call_recording_url: 'https://example-bucket.s3.ap-south-1.amazonaws.com/b2b_call_recordings/sample/call_sample.mp3',
+            call_start_time: '14:23:12',
+            call_end_time: '14:23:31',
+            call_disposition: 'completed',
+            duration: '19 second',
+            caller: 'phlebo',
+            receiver: 'customer',
+          }),
+        },
+        {
+          id: 'phlebo_onhold', name: 'On Hold Proof', code: 'phlebo_onhold_proof_details', dot: 'dot-yellow',
+          buildPayload: (o) => phleboEvent('phlebo_onhold_proof_details', o, {
+            imgPath: [
+              'https://example-bucket.s3.ap-southeast-1.amazonaws.com/onhold_v2/sample/proof-1.jpg',
+              'https://example-bucket.s3.ap-southeast-1.amazonaws.com/onhold_v2/sample/proof-2.jpg',
+            ],
+          }),
+        },
+      ],
+    },
+    {
+      label: 'Other Events',
+      events: [
+        {
+          id: 'report_uploaded', name: 'Report Uploaded', code: 'report_uploaded', dot: 'dot-green',
+          buildPayload: (o) => phleboEvent('report_uploaded', o, {
+            verified_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+            report_url: 'https://example-bucket.s3.ap-southeast-1.amazonaws.com/uploads/reports/sample/test-report.pdf',
+            full_report: 1,
+          }),
+        },
+        {
+          id: 'order_upgrade', name: 'Order Upgrade', code: 'order_upgrade', dot: 'dot-purple',
+          buildPayload: (o) => statusUpdated(o, 'BS005', {
+            payment_status: true, paid_amount: '1110',
+          }, 'order_upgrade'),
+        },
+      ],
+    },
+  ];
+
+  // ── Payload builders ───────────────────────────────────────────────────────
+
+  function slotDate(o) {
+    const d = o.order?.scheduled_date;
+    if (!d) return new Date().toISOString().slice(0, 10);
+    return `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+  }
+
+  function fmtTime(t) {
+    if (!t) return '06:00 AM';
+    const h = t.hours ?? 0;
+    const m = t.minutes ?? 0;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function slotStart(o) { return fmtTime(o.order?.scheduled_slot?.start_time); }
+  function slotEnd(o) { return fmtTime(o.order?.scheduled_slot?.end_time); }
+
+  function vendorCustomerId(o) {
+    // Pull from events payload_json if available, otherwise fall back to empty
+    for (const ev of (o.events ?? [])) {
+      try {
+        const p = JSON.parse(ev.payload_json || '{}');
+        if (p.vendor_customer_id) return p.vendor_customer_id;
+        if (p.Customers?.[0]?.CustomerID) return p.Customers[0].CustomerID;
+      } catch {}
+    }
+    return '';
+  }
+
+  function statusUpdated(o, bsCode, extra = {}, type = 'status_updated') {
+    return {
+      type,
+      booking_id: o.order?.lab_partner_booking_id ?? '',
+      data: {
+        booking_status: bsCode,
+        customer_status: bsCode,
+        payment_status: false,
+        paid_amount: '0',
+        remark: '',
+        ref_booking_id: '0',
+        sample_collection_date: slotDate(o),
+        start_time: slotStart(o),
+        end_time: slotEnd(o),
+        vendor_booking_id: o.order?.order_id ?? '',
+        vendor_customer_id: vendorCustomerId(o),
+        ...extra,
+      },
+    };
+  }
+
+  function phleboEvent(type, o, extraData = {}) {
+    return {
+      type,
+      booking_id: o.order?.lab_partner_booking_id ?? '',
+      data: {
+        vendor_booking_id: o.order?.order_id ?? '',
+        vendor_customer_id: vendorCustomerId(o),
+        ...extraData,
+      },
+    };
+  }
+
+  // ── Fetch order ────────────────────────────────────────────────────────────
+
+  async function fetchOrder() {
+    const orderId = document.getElementById('orderIdInput').value.trim();
+    const customerId = document.getElementById('customerIdInput').value.trim() || '5620';
+    if (!orderId) { showToast('Enter an Order ID to continue', 'warn'); return; }
+
+    const btn = document.getElementById('fetchBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Fetching <span class="spinner"></span>';
+
+    try {
+      const res = await fetch(`/api/status-updater/order/${encodeURIComponent(orderId)}?customer_id=${encodeURIComponent(customerId)}`);
+      const json = await res.json();
+      if (!res.ok || !json.data?.order) {
+        throw new Error(json.message || JSON.stringify(json));
+      }
+      orderData = json.data;
+      renderOrderCard(orderData);
+      renderEventList();
+      document.getElementById('mainLayout').style.display = 'grid';
+    } catch (err) {
+      showToast('Could not load order. Check the ID and try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Fetch Order';
+    }
+  }
+
+  function renderOrderCard(d) {
+    const o = d.order;
+    const card = document.getElementById('orderCard');
+    const theme = o.status_display_info?.theme ?? '';
+    const badgeClass = theme.includes('GREEN') ? 'badge-green'
+      : theme.includes('RED') ? 'badge-red'
+      : theme.includes('YELLOW') ? 'badge-yellow'
+      : 'badge-blue';
+
+    document.getElementById('orderGrid').innerHTML = `
+      <div class="order-field">
+        <label>TM Order ID</label>
+        <div class="val">${o.order_id}</div>
+      </div>
+      <div class="order-field">
+        <label>Healthians Booking ID</label>
+        <div class="val">${o.lab_partner_booking_id ?? '—'}</div>
+      </div>
+      <div class="order-field">
+        <label>Customer ID</label>
+        <div class="val">${o.tm_customer_id}</div>
+      </div>
+      <div class="order-field">
+        <label>Current Status</label>
+        <div class="val">
+          <span class="badge ${badgeClass}">${o.status_display_info?.label ?? o.booking_status}</span>
+        </div>
+      </div>
+      <div class="order-field">
+        <label>Booking Status</label>
+        <div class="val">${o.booking_status}</div>
+      </div>
+      <div class="order-field">
+        <label>Slot</label>
+        <div class="val">${slotDate(d)} · ${slotStart(d)} – ${slotEnd(d)}</div>
+      </div>
+    `;
+    card.style.display = 'block';
+  }
+
+  function renderEventList() {
+    const list = document.getElementById('eventList');
+    list.innerHTML = EVENT_GROUPS.map(group => `
+      <div class="event-group">
+        <div class="event-group-label">${group.label}</div>
+        ${group.events.map(ev => `
+          <div class="event-item" id="evt-${ev.id}" onclick="selectEvent('${ev.id}')">
+            <span class="event-dot ${ev.dot}"></span>
+            <span class="event-name">${ev.name}</span>
+            <span class="event-code">${ev.code}</span>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  // ── Select event ───────────────────────────────────────────────────────────
+
+  function selectEvent(id) {
+    document.querySelectorAll('.event-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('evt-' + id)?.classList.add('active');
+
+    const group = EVENT_GROUPS.flatMap(g => g.events).find(e => e.id === id);
+    if (!group || !orderData) return;
+
+    selectedEvent = group;
+    const payload = group.buildPayload(orderData);
+    document.getElementById('payloadEditor').value = JSON.stringify(payload, null, 2);
+    document.getElementById('fireBtn').disabled = false;
+    document.getElementById('statusPill').textContent = '';
+    document.getElementById('responsePanel').style.display = 'none';
+  }
+
+  // ── Fire webhook ───────────────────────────────────────────────────────────
+
+  async function fireWebhook() {
+    let payload;
+    try {
+      payload = JSON.parse(document.getElementById('payloadEditor').value);
+    } catch {
+      showToast('Payload is not valid JSON. Fix it before firing.', 'warn');
+      return;
+    }
+
+    const btn = document.getElementById('fireBtn');
+    const pill = document.getElementById('statusPill');
+    btn.disabled = true;
+    btn.innerHTML = 'Firing… <span class="spinner"></span>';
+    pill.textContent = '';
+
+    try {
+      const res = await fetch('/api/status-updater/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      const ok = res.status >= 200 && res.status < 300;
+
+      pill.textContent = ok ? `✓ ${res.status} OK` : `✗ ${res.status} Error`;
+      pill.style.color = ok ? '#4ade80' : '#f87171';
+
+      const panel = document.getElementById('responsePanel');
+      const body = document.getElementById('responseBody');
+      const header = document.getElementById('responseHeader');
+
+      header.textContent = `Response · ${res.status} ${res.statusText}`;
+      body.textContent = JSON.stringify(json, null, 2);
+      body.className = ok ? '' : 'response-error';
+      panel.style.display = 'block';
+    } catch (err) {
+      pill.textContent = '✗ Network error';
+      pill.style.color = '#f87171';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Fire Webhook';
+    }
+  }
+
+  // Allow Enter key to fetch
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('orderIdInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') fetchOrder();
+    });
+  });
+</script>
+</body>
+</html>

@@ -16,6 +16,12 @@ const SECTIONS = [
     title: "Catalogue Management",
     description: "Search products and update MRP / selling price.",
   },
+  {
+    href: "/status-updater",
+    title: "Status Updater",
+    description: "Replicate Healthians staging webhooks to test Track Order status transitions.",
+    stageOnly: true,
+  },
 ];
 
 const THEME = {
@@ -120,12 +126,12 @@ export default function Home() {
                     fontWeight: 700,
                     padding: "2px 8px",
                     borderRadius: 999,
-                    background: t.bg,
-                    color: t.accent,
-                    border: `1px solid ${t.border}`,
+                    background: s.stageOnly ? THEME.stage.bg : t.bg,
+                    color: s.stageOnly ? THEME.stage.accent : t.accent,
+                    border: `1px solid ${s.stageOnly ? THEME.stage.border : t.border}`,
                   }}
                 >
-                  {env.toUpperCase()}
+                  {s.stageOnly ? "STAGE ONLY" : env.toUpperCase()}
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: "#667085" }}>{s.description}</p>
